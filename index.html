@@ -3,344 +3,354 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>情人节快乐！ 2026.2.14</title>
+    <title>三五七 ecx作弊工具</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
-        }
-
         body {
-            background: linear-gradient(135deg, #ffdee9 0%, #b5a7e2 100%);
-            padding: 20px;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* 爱心背景装饰 */
-        .heart {
-            position: absolute;
-            color: #ff6b9d;
-            font-size: 20px;
-            opacity: 0.3;
-            animation: float 6s infinite ease-in-out;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-            100% { transform: translateY(0) rotate(360deg); }
-        }
-
-        .container {
-            max-width: 380px;
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
             margin: 0 auto;
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
-            overflow: hidden;
-            border: 2px solid #ff6b9d;
-            display: flex;
-            flex-direction: column;
-            height: 85vh;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header {
-            background-color: #ff6b9d;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .header::before,
-        .header::after {
-            content: "❤️";
-            margin: 0 10px;
-        }
-
-        .chat-box {
-            flex: 1;
             padding: 20px;
-            overflow-y: auto;
-            background-color: #fdf6f9;
+            background-color: #f5f5f5;
+        }
+        .game-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .game-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .game-info {
+            background-color: #e9f7fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .game-info h3 {
+            margin-top: 0;
+            color: #2c6ca0;
+        }
+        .game-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .pile {
+            text-align: center;
+            width: 100px;
+        }
+        .pile-items {
+            height: 200px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 10px;
         }
-
-        .message {
-            max-width: 75%;
-            padding: 15px 18px;
-            border-radius: 20px;
-            line-height: 1.5;
-            position: relative;
-            word-wrap: break-word;
-            font-size: 15px;
+        .item {
+            width: 60px;
+            height: 30px;
+            background-color: #ff4444;
+            margin: 2px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
-
-        .my-message {
-            align-self: flex-end;
-            background-color: #ff9eb5;
-            color: white;
-            border-bottom-right-radius: 8px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        .item.selected {
+            background-color: #44ff44;
         }
-
-        .other-message {
-            align-self: flex-start;
-            background-color: #fff;
-            color: #333;
-            border: 2px solid #ffb5c5;
-            border-bottom-left-radius: 8px;
-        }
-
-        /* 消息发送失败样式 (感叹号) */
-        .message-failed {
-            color: #ff6b9d;
+        .pile-label {
             font-weight: bold;
-            text-align: center;
-            margin-top: 5px;
-            font-size: 12px;
-        }
-
-        .input-area {
-            display: flex;
-            padding: 15px;
-            background-color: #fff;
-            border-top: 2px solid #ffb5c5;
-        }
-
-        #messageInput {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #ff9eb5;
-            border-radius: 25px;
-            outline: none;
-            font-size: 14px;
-            background-color: #fff0f6;
+            font-size: 18px;
             color: #333;
         }
-
-        #messageInput::placeholder {
-            color: #ff9eb5;
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
         }
-
-        #sendBtn {
-            margin-left: 10px;
-            padding: 0 20px;
-            background-color: #ff6b9d;
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 25px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 16px;
         }
-
-        #sendBtn:hover {
-            background-color: #e55a89;
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
-
-        .odds-info {
-            margin-top: 15px;
-            padding: 12px 15px;
-            background-color: #fff0f6;
-            border: 2px solid #ffb5c5;
-            border-radius: 10px;
-            font-size: 11px;
-            color: #d4418e;
-            max-height: 180px;
-            overflow-y: auto;
+        button#reset-btn {
+            background-color: #2196F3;
         }
-
-        .odds-info h4 {
-            color: #d4418e;
-            margin-bottom: 8px;
+        .game-status {
             text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .strategy-info {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .strategy-info h3 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .highlight {
+            background-color: #fffde7;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <!-- 随机爱心背景 -->
-    <script>
-        for(let i=0; i<15; i++){
-            const heart = document.createElement('div');
-            heart.classList.add('heart');
-            heart.innerText = '❤️';
-            heart.style.left = Math.random()*100 + 'vw';
-            heart.style.top = Math.random()*100 + 'vh';
-            heart.style.animationDuration = (Math.random()*5 + 3) + 's';
-            heart.style.fontSize = (Math.random()*15 + 10) + 'px';
-            document.body.appendChild(heart);
-        }
-    </script>
+    <div class="game-container">
+        <h1 class="game-title">ecx作弊工具 357</h1>
+        
+        <div class="game-info">
+            <h3>游戏规则</h3>
+            <p>1. 游戏开始时有三堆物品，数量分别为 <strong>3个、5个和7个</strong>。</p>
+            <p>2. 两名玩家轮流从任意一堆中拿走 <strong>任意数量</strong>（至少一个）的物品。</p>
+            <p>3. <strong>拿走最后一个物品的玩家判负</strong>。</p>
+        </div>
+        
+        <div class="game-board">
+            <div class="pile">
+                <div class="pile-items" id="pile1"></div>
+                <div class="pile-label">第一堆: <span id="count1">3</span></div>
+            </div>
+            <div class="pile">
+                <div class="pile-items" id="pile2"></div>
+                <div class="pile-label">第二堆: <span id="count2">5</span></div>
+            </div>
+            <div class="pile">
+                <div class="pile-items" id="pile3"></div>
+                <div class="pile-label">第三堆: <span id="count3">7</span></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">开始游戏</button>
+            <button id="next-btn" disabled>下一步</button>
+            <button id="reset-btn">重置游戏</button>
+        </div>
+        
+        <div class="game-status" id="status">游戏状态: 等待开始</div>
+        
 
-    <div class="container">
-        <div class="header">💘 心动匹配测试</div>
-        <div class="chat-box" id="chatBox">
-            <!-- 聊天记录将通过 JavaScript 动态插入 -->
-        </div>
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="输入“咱俩试试”...">
-            <button id="sendBtn">💌 发送</button>
-        </div>
-        <div class="odds-info">
-            <h4>💖 情人节抽奖概率</h4>
-            <ul>
-                <li>滚你妈的 10%</li>
-                <li>去你妈的 10%</li>
-                <li>你也配？ 10%</li>
-                <li>傻逼二次元 10%</li>
-                <li>癔症又犯了？ 10%</li>
-                <li>死男同真恶心 5%</li>
-                <li>现在是幻想时刻 5%</li>
-                <li>柚子厨滚出去 5%</li>
-                <li>这是最后通牒 5%</li>
-                <li>以后不要再和我扯上关系 5%</li>
-                <li>被拉黑+屏蔽 5%</li>
-                <li>小男娘 5%</li>
-                <li>随机的网图 2.5%</li>
-                <li>随机的贴吧圣经 2.5%</li>
-                <li>下次再说吧 2.5%</li>
-                <li>你是个好人 2.5%</li>
-                <li>我一直把你当好朋友 2.5%</li>
-                <li>滚出去 2.49%</li>
-                <li>好呀宝宝 0.01%</li>
-                <li>其实我也喜欢你好久了（隐藏款）0.001%</li>
-            </ul>
-        </div>
     </div>
 
     <script>
-        const chatBox = document.getElementById('chatBox');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
+        // 游戏状态
+        const gameState = {
+            piles: [3, 5, 7],
+            currentPlayer: 'computer',
+            gameStarted: false,
+            gameOver: false,
+            selectedPile: null,
+            itemsToTake: 0
+        };
 
-        // 定义回复列表及权重 (为了精度，放大了倍数)
-        const responses = [
-            { text: "滚你妈的", weight: 1000 },
-            { text: "去你妈的", weight: 1000 },
-            { text: "你也配？", weight: 1000 },
-            { text: "傻逼二次元", weight: 1000 },
-            { text: "癔症又犯了？", weight: 1000 },
-            { text: "死男同真恶心", weight: 500 },
-            { text: "现在是幻想时刻", weight: 500 },
-            { text: "柚子厨滚出去", weight: 500 },
-            { text: "这是最后通牒", weight: 500 },
-            { text: "以后不要再和我扯上关系", weight: 500 },
-            { text: "被拉黑+屏蔽", weight: 500 },
-            { text: "小男娘", weight: 500 },
-            { text: "随机的网图", weight: 250 },
-            { text: "随机的贴吧圣经", weight: 250 },
-            { text: "下次再说吧", weight: 250 },
-            { text: "你是个好人", weight: 250 },
-            { text: "我一直把你当好朋友", weight: 250 },
-            { text: "滚出去", weight: 249 },
-            { text: "好呀宝宝", weight: 1 },
-            { text: "其实我也喜欢你好久了（隐藏款）", weight: 0.1 }
+        const pileElements = [
+            document.getElementById('pile1'),
+            document.getElementById('pile2'),
+            document.getElementById('pile3')
         ];
-
-        // 状态变量：是否已被拉黑
-        let isBlocked = false;
-
-        // 关键词和变体库
-        const triggerKeywords = [
-            "咱俩试试", "咱两试试", "zltt", "zlt", "咱们试试", 
-            "咱俩试下", "我们试试", "咱们试一试"
+        const countElements = [
+            document.getElementById('count1'),
+            document.getElementById('count2'),
+            document.getElementById('count3')
         ];
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const status = document.getElementById('status');
 
-        // 检查输入是否包含触发词
-        function isTriggerMessage(input) {
-            const lowerInput = input.toLowerCase();
-            if (lowerInput.includes("咱俩试试") || lowerInput.includes("咱两试试")) return true;
-            return triggerKeywords.some(keyword => lowerInput.includes(keyword.toLowerCase()));
+        // 初始化
+        function initGame() {
+            gameState.piles = [3, 5, 7];
+            gameState.currentPlayer = 'computer';
+            gameState.gameStarted = false;
+            gameState.gameOver = false;
+            gameState.selectedPile = null;
+            gameState.itemsToTake = 0;
+            updatePiles();
+            status.textContent = '游戏状态: 等待开始';
+            startBtn.disabled = false;
+            nextBtn.disabled = true;
         }
 
-        // 发送消息函数
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            // 1. 如果处于被拉黑状态，发送任何消息都会失败
-            if (isBlocked) {
-                appendMessage("消息已发出，但被对方拒收了。", 'message-failed');
-                messageInput.value = '';
-                return;
-            }
-
-            // 2. 添加用户消息到界面
-            appendMessage(message, 'my-message');
-
-            // 3. 检查触发逻辑
-            if (isTriggerMessage(message)) {
-                // 模拟思考时间
-                setTimeout(() => {
-                    const reply = getRandomResponse();
-                    
-                    // 特殊逻辑：如果抽中“被拉黑+屏蔽”
-                    if (reply === "被拉黑+屏蔽") {
-                        // 不显示任何回复 (模拟对方没回)
-                        isBlocked = true; // 设置状态为已拉黑
-                        appendMessage("对方已将你拉黑，无法接收你的消息。", 'message-failed');
-                    } else {
-                        // 正常回复
-                        appendMessage(reply, 'other-message');
+        // 重新绘制所有堆，并绑定点击
+        function updatePiles() {
+            for (let p = 0; p < 3; p++) {
+                const pe = pileElements[p];
+                pe.innerHTML = '';
+                const total = gameState.piles[p];
+                for (let i = 0; i < total; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'item';
+                    if (gameState.selectedPile === p && i < gameState.itemsToTake) {
+                        item.classList.add('selected');
                     }
-                }, 800);
-            } else {
-                // 普通回复
-                setTimeout(() => {
-                    appendMessage("嗯嗯~", 'other-message');
-                }, 500);
-            }
-
-            // 清空输入框
-            messageInput.value = '';
-        }
-
-        // 添加消息到聊天框
-        function appendMessage(text, className) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', className);
-            messageElement.textContent = text;
-            chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        // 根据权重获取随机回复
-        function getRandomResponse() {
-            const totalWeight = responses.reduce((sum, item) => sum + item.weight, 0);
-            let random = Math.random() * totalWeight;
-            for (const response of responses) {
-                if (random < response.weight) {
-                    return response.text;
+                    item.dataset.pile = p;
+                    item.dataset.index = i;
+                    item.addEventListener('click', onItemClick);
+                    pe.appendChild(item);
                 }
-                random -= response.weight;
+                countElements[p].textContent = total;
             }
-            return "你好！";
         }
 
-        // 事件监听
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
+        // 点击物品
+        function onItemClick(e) {
+            if (gameState.currentPlayer !== 'human' || gameState.gameOver) return;
+            const pile = parseInt(e.target.dataset.pile);
+            const idx = parseInt(e.target.dataset.index);
+            if (gameState.piles[pile] === 0) return;
+
+            gameState.selectedPile = pile;
+            gameState.itemsToTake = idx + 1;
+            updatePiles();
+            status.textContent = `游戏状态: 你选择从第${pile+1}堆拿${gameState.itemsToTake}个`;
+        }
+
+        // 异或值
+        function xorAll() {
+            return gameState.piles[0] ^ gameState.piles[1] ^ gameState.piles[2];
+        }
+
+        // 只剩最后一个
+        function isOnlyOneLeft() {
+            return gameState.piles.reduce((a,b)=>a+b,0) === 1;
+        }
+
+        // 电脑走棋（稳定必胜）
+        function computerMove() {
+            if (isOnlyOneLeft()) {
+                // 被迫拿最后一个 → 电脑输
+                for (let i=0; i<3; i++) {
+                    if (gameState.piles[i]>0) {
+                        gameState.piles[i]--;
+                        status.textContent = `游戏状态: 电脑拿走最后1个，你赢了！`;
+                        gameState.gameOver = true;
+                        nextBtn.disabled = true;
+                        updatePiles();
+                        return;
+                    }
+                }
             }
+
+            const x = xorAll();
+            let moved = false;
+            if (x !== 0) {
+                for (let i=0; i<3; i++) {
+                    const want = gameState.piles[i] ^ x;
+                    if (want < gameState.piles[i]) {
+                        const take = gameState.piles[i] - want;
+                        gameState.piles[i] = want;
+                        status.textContent = `游戏状态: 电脑从第${i+1}堆拿走${take}个`;
+                        moved = true;
+                        break;
+                    }
+                }
+            }
+            if (!moved) {
+                // 随便拿一个
+                for (let i=0; i<3; i++) {
+                    if (gameState.piles[i]>0) {
+                        gameState.piles[i]--;
+                        status.textContent = `游戏状态: 电脑从第${i+1}堆拿走1个`;
+                        moved = true;
+                        break;
+                    }
+                }
+            }
+            updatePiles();
+
+            if (isOnlyOneLeft()) {
+                status.textContent = '游戏状态: 只剩最后1个，你输了！';
+                gameState.gameOver = true;
+                nextBtn.disabled = true;
+            }
+        }
+
+        // 玩家走棋
+        function playerMove() {
+            if (gameState.selectedPile === null || gameState.itemsToTake < 1) {
+                status.textContent = '游戏状态: 请先选择要拿几个';
+                return false;
+            }
+            const p = gameState.selectedPile;
+            const n = gameState.itemsToTake;
+            if (n > gameState.piles[p]) {
+                status.textContent = '游戏状态: 不能拿超过当前堆数量';
+                return false;
+            }
+            gameState.piles[p] -= n;
+            status.textContent = `游戏状态: 你从第${p+1}堆拿走${n}个`;
+            gameState.selectedPile = null;
+            gameState.itemsToTake = 0;
+            updatePiles();
+
+            if (isOnlyOneLeft()) {
+                status.textContent = '游戏状态: 你被迫拿最后1个，你输了！';
+                gameState.gameOver = true;
+                nextBtn.disabled = true;
+                return false;
+            }
+            return true;
+        }
+
+        // 下一步
+        function nextStep() {
+            if (gameState.gameOver) return;
+            if (gameState.currentPlayer === 'computer') {
+                if (!gameState.gameStarted) {
+                    // 第一步固定 3 5 4
+                    gameState.piles[2] = 4;
+                    gameState.gameStarted = true;
+                    status.textContent = '游戏状态: 电脑将第3堆变为4，形成 3、5、4 必胜局面';
+                    updatePiles();
+                } else {
+                    computerMove();
+                }
+                if (!gameState.gameOver) {
+                    gameState.currentPlayer = 'human';
+                    nextBtn.disabled = false;
+                }
+            } else {
+                if (playerMove()) {
+                    if (!gameState.gameOver) {
+                        gameState.currentPlayer = 'computer';
+                        nextBtn.disabled = false;
+                    }
+                }
+            }
+        }
+
+        // 事件
+        startBtn.addEventListener('click', () => {
+            startBtn.disabled = true;
+            nextBtn.disabled = false;
+            gameState.gameStarted = true;
+            gameState.currentPlayer = 'computer';
+            status.textContent = '游戏状态: 电脑先手';
+            nextStep();
         });
 
-        // 初始化欢迎消息
-        window.onload = () => {
-            appendMessage("💖 情人节快乐！试着输入“咱俩试试”或者它的谐音看看会发生什么吧~", 'other-message');
-        };
+        nextBtn.addEventListener('click', nextStep);
+        resetBtn.addEventListener('click', initGame);
+
+        initGame();
     </script>
 </body>
 </html>

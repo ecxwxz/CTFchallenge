@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>三五七 ecx作弊工具</title>
+    <title>三五七外挂</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -114,7 +114,7 @@
 </head>
 <body>
     <div class="game-container">
-        <h1 class="game-title">ecx作弊工具 357</h1>
+        <h1 class="game-title">ecx作弊系列-357</h1>
         
         <div class="game-info">
             <h3>游戏规则</h3>
@@ -146,11 +146,10 @@
         
         <div class="game-status" id="status">游戏状态: 等待开始</div>
         
-
+        
     </div>
 
     <script>
-        // 游戏状态
         const gameState = {
             piles: [3, 5, 7],
             currentPlayer: 'computer',
@@ -175,7 +174,6 @@
         const resetBtn = document.getElementById('reset-btn');
         const status = document.getElementById('status');
 
-        // 初始化
         function initGame() {
             gameState.piles = [3, 5, 7];
             gameState.currentPlayer = 'computer';
@@ -189,7 +187,6 @@
             nextBtn.disabled = true;
         }
 
-        // 重新绘制所有堆，并绑定点击
         function updatePiles() {
             for (let p = 0; p < 3; p++) {
                 const pe = pileElements[p];
@@ -198,11 +195,12 @@
                 for (let i = 0; i < total; i++) {
                     const item = document.createElement('div');
                     item.className = 'item';
-                    if (gameState.selectedPile === p && i < gameState.itemsToTake) {
+                    // 修正选中逻辑显示：从顶部往下选中
+                    if (gameState.selectedPile === p && i >= total - gameState.itemsToTake) {
                         item.classList.add('selected');
                     }
                     item.dataset.pile = p;
-                    item.dataset.index = i;
+                    item.dataset.index = total - i; // 点击物品表示取走该位置及以上的所有物品
                     item.addEventListener('click', onItemClick);
                     pe.appendChild(item);
                 }
@@ -210,49 +208,61 @@
             }
         }
 
-        // 点击物品
         function onItemClick(e) {
             if (gameState.currentPlayer !== 'human' || gameState.gameOver) return;
             const pile = parseInt(e.target.dataset.pile);
-            const idx = parseInt(e.target.dataset.index);
-            if (gameState.piles[pile] === 0) return;
+            const takeCount = parseInt(e.target.dataset.index);
 
             gameState.selectedPile = pile;
-            gameState.itemsToTake = idx + 1;
+            gameState.itemsToTake = takeCount;
             updatePiles();
             status.textContent = `游戏状态: 你选择从第${pile+1}堆拿${gameState.itemsToTake}个`;
         }
 
-        // 异或值
         function xorAll() {
             return gameState.piles[0] ^ gameState.piles[1] ^ gameState.piles[2];
         }
 
-        // 只剩最后一个
-        function isOnlyOneLeft() {
-            return gameState.piles.reduce((a,b)=>a+b,0) === 1;
+        // 胜负判定修正：谁执行完移动后总数为0，谁就输了
+        function checkEndAfterMove() {
+            const sum = gameState.piles.reduce((a, b) => a + b, 0);
+            if (sum === 0) {
+                gameState.gameOver = true;
+                if (gameState.currentPlayer === 'human') {
+                    status.textContent = '游戏结束：你拿走了最后一个，你输了！';
+                } else {
+                    status.textContent = '游戏结束：电脑拿走了最后一个，你赢了！';
+                }
+                nextBtn.disabled = true;
+                return true;
+            }
+            return false;
         }
 
-        // 电脑走棋（稳定必胜）
         function computerMove() {
-            if (isOnlyOneLeft()) {
-                // 被迫拿最后一个 → 电脑输
-                for (let i=0; i<3; i++) {
-                    if (gameState.piles[i]>0) {
-                        gameState.piles[i]--;
-                        status.textContent = `游戏状态: 电脑拿走最后1个，你赢了！`;
-                        gameState.gameOver = true;
-                        nextBtn.disabled = true;
-                        updatePiles();
-                        return;
-                    }
-                }
-            }
-
             const x = xorAll();
             let moved = false;
-            if (x !== 0) {
-                for (let i=0; i<3; i++) {
+
+            // 统计当前数量大于 1 的堆
+            const moreThanOne = gameState.piles.filter(p => p > 1).length;
+
+            // 核心修正：收官策略 (Misere Play)
+            // 如果执行移动后，所有剩下的堆数量都将 <= 1
+            if (moreThanOne === 1) {
+                const targetPileIdx = gameState.piles.findIndex(p => p > 1);
+                const otherPilesWithOne = gameState.piles.filter((p, i) => i !== targetPileIdx && p === 1).length;
+                
+                // 目标：使剩下的 1 的堆的总数为奇数
+                const targetValue = (otherPilesWithOne % 2 === 0) ? 1 : 0;
+                const take = gameState.piles[targetPileIdx] - targetValue;
+                gameState.piles[targetPileIdx] = targetValue;
+                status.textContent = `游戏状态: 电脑从第${targetPileIdx+1}堆拿走${take}个 (进入必胜收官)`;
+                moved = true;
+            } 
+            
+            // 普通 Nim 策略
+            if (!moved && x !== 0) {
+                for (let i = 0; i < 3; i++) {
                     const want = gameState.piles[i] ^ x;
                     if (want < gameState.piles[i]) {
                         const take = gameState.piles[i] - want;
@@ -263,10 +273,11 @@
                     }
                 }
             }
+
+            // 如果已经处于必败态（x=0），随便拿一个
             if (!moved) {
-                // 随便拿一个
-                for (let i=0; i<3; i++) {
-                    if (gameState.piles[i]>0) {
+                for (let i = 0; i < 3; i++) {
+                    if (gameState.piles[i] > 0) {
                         gameState.piles[i]--;
                         status.textContent = `游戏状态: 电脑从第${i+1}堆拿走1个`;
                         moved = true;
@@ -274,77 +285,61 @@
                     }
                 }
             }
-            updatePiles();
 
-            if (isOnlyOneLeft()) {
-                status.textContent = '游戏状态: 只剩最后1个，你输了！';
-                gameState.gameOver = true;
-                nextBtn.disabled = true;
-            }
+            updatePiles();
+            checkEndAfterMove();
         }
 
-        // 玩家走棋
         function playerMove() {
             if (gameState.selectedPile === null || gameState.itemsToTake < 1) {
-                status.textContent = '游戏状态: 请先选择要拿几个';
+                status.textContent = '游戏状态: 请先点击红色物品选择要拿走几个';
                 return false;
             }
             const p = gameState.selectedPile;
             const n = gameState.itemsToTake;
-            if (n > gameState.piles[p]) {
-                status.textContent = '游戏状态: 不能拿超过当前堆数量';
-                return false;
-            }
+
             gameState.piles[p] -= n;
             status.textContent = `游戏状态: 你从第${p+1}堆拿走${n}个`;
             gameState.selectedPile = null;
             gameState.itemsToTake = 0;
             updatePiles();
 
-            if (isOnlyOneLeft()) {
-                status.textContent = '游戏状态: 你被迫拿最后1个，你输了！';
-                gameState.gameOver = true;
-                nextBtn.disabled = true;
-                return false;
-            }
-            return true;
+            return !checkEndAfterMove(); // 如果没结束返回 true
         }
 
-        // 下一步
         function nextStep() {
             if (gameState.gameOver) return;
+
             if (gameState.currentPlayer === 'computer') {
-                if (!gameState.gameStarted) {
-                    // 第一步固定 3 5 4
-                    gameState.piles[2] = 4;
-                    gameState.gameStarted = true;
-                    status.textContent = '游戏状态: 电脑将第3堆变为4，形成 3、5、4 必胜局面';
-                    updatePiles();
-                } else {
-                    computerMove();
-                }
+                // 执行电脑移动
+                computerMove();
                 if (!gameState.gameOver) {
                     gameState.currentPlayer = 'human';
-                    nextBtn.disabled = false;
+                    status.textContent += "。轮到你了！";
                 }
             } else {
+                // 执行玩家移动
                 if (playerMove()) {
-                    if (!gameState.gameOver) {
-                        gameState.currentPlayer = 'computer';
-                        nextBtn.disabled = false;
-                    }
+                    gameState.currentPlayer = 'computer';
+                    // 玩家确认后，电脑自动准备
+                    status.textContent += "。看电脑如何应对...";
+                    // 延迟一点点执行，用户体验更好
+                    setTimeout(nextStep, 600);
                 }
             }
         }
 
-        // 事件
         startBtn.addEventListener('click', () => {
             startBtn.disabled = true;
             nextBtn.disabled = false;
             gameState.gameStarted = true;
             gameState.currentPlayer = 'computer';
-            status.textContent = '游戏状态: 电脑先手';
-            nextStep();
+            
+            // 第一步特殊处理（如你说明中的必胜开局）
+            gameState.piles[2] = 4;
+            status.textContent = '游戏状态: 电脑先手，将第3堆变为4 (3,5,4 必胜局面)';
+            updatePiles();
+            gameState.currentPlayer = 'human';
         });
 
         nextBtn.addEventListener('click', nextStep);

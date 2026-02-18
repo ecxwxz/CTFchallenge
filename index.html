@@ -323,7 +323,7 @@
                     gameState.currentPlayer = 'computer';
                     // 玩家确认后，电脑自动准备
                     status.textContent += "。看电脑如何应对...";
-                    // 延迟一点点执行，用户体验更好
+                    
                     setTimeout(nextStep, 600);
                 }
             }
@@ -335,9 +335,9 @@
             gameState.gameStarted = true;
             gameState.currentPlayer = 'computer';
             
-            // 第一步特殊处理（如你说明中的必胜开局）
-            gameState.piles[2] = 4;
-            status.textContent = '游戏状态: 电脑先手，将第3堆变为4 (3,5,4 必胜局面)';
+            
+            gameState.piles[0] = 2;
+            status.textContent = '游戏状态: 电脑先手，将第1堆变为2 (2,5,7 必胜局面)';
             updatePiles();
             gameState.currentPlayer = 'human';
         });

